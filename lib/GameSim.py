@@ -16,23 +16,29 @@ class GameSim():
         3: lambda x, y: (x-1, y), 
     }
 
-    def __init__(self, shape=(15, 12), max_cap=5):
+    def __init__(self, shape=(15, 12), max_cap=5, nb_plyers=1, nb_diamoinds=20, nb_portals=2, action_space=4, max_ticks=600):
         self.max_cap = max_cap
         self.id_to_pos = {}
         self.id_to_base = {}
-        self.id_to_point = {}
+        self.id_to_point = np.zeros(nb_plyers, dtype=np.long)
         self.portal_to = {}
         self.cached_picks = set()
+        self.cached_diamonds = set()
         self.shape = shape
         self.bag = np.zeros(shape=shape, dtype=np.int8)
         self.base = np.zeros(shape=shape, dtype=np.int8)
         self.players = np.zeros(shape=shape, dtype=np.int8)
-        self.dimonds = np.zeros(shape=shape, dtype=np.int8)
+        self.diamonds = np.zeros(shape=shape, dtype=np.int8)
         self.portals = np.zeros(shape=shape, dtype=np.int8)
         self.game_ticks = 0
+        self.max_ticks = max_ticks
+        self.nb_plyers = nb_plyers
+        self.nb_diamoinds = nb_diamoinds
+        self.nb_portals = nb_portals
+        self.action_space = action_space
 
     def __repr__(self):
-        stack = [self.players, self.base, self.dimonds, self.portals]
+        stack = [self.players, self.base, self.diamonds, self.portals]
         rep = ""
         for y in range(self.shape[1]):
             for x in range(self.shape[0]):
@@ -52,17 +58,20 @@ class GameSim():
         self.bag.fill(0)
         self.base.fill(0)
         self.players.fill(0)
-        self.dimonds.fill(0)
+        self.diamonds.fill(0)
         self.portals.fill(0)
         self.cached_picks = set()
         self.portal_to = {}
         self.game_ticks = 0
         
     def new_game(self, nb_plyers=1, nb_diamoinds=20, nb_portals=2):
+        self.nb_plyers = nb_plyers
+        self.nb_diamoinds = nb_diamoinds
+        self.nb_portals = nb_portals
         self.clear_obj()
         self.id_to_pos = {p: self.random_pos(*self.shape) for p in range(nb_plyers)}
         self.id_to_base = {p: self.id_to_pos[p] for p in range(nb_plyers)}
-        self.id_to_point = {p: 0 for p in range(nb_plyers)}
+        self.id_to_point = np.zeros(nb_plyers, dtype=np.long)
 
         for players, (x,y) in self.id_to_pos.items():
             self.base[x][y] = 1
@@ -72,29 +81,36 @@ class GameSim():
             self.portals[x][y] = 1
             self.portal_to[(x,y)]= portals[(i+1)%nb_portals]
         
-        for x,y in (self.random_pos(*self.shape) for _ in range(nb_diamoinds)):
-            self.dimonds[x][y] = 1
+        self.reset_diamonds()
+
+    def reset_diamonds(self):
+        self.cached_picks = set()
+        for x,y in (self.random_pos(*self.shape) for _ in range(self.nb_diamoinds)):
+            self.diamonds[x][y] = 1
 
     def get_state(self, id):
         current_player = np.copy(self.players)
         current_player[self.id_to_pos[id]] = 2
         current_base = np.copy(self.base)
         current_base[self.id_to_base[id]] = 2
-        return np.stack([current_player, current_base, self.bag, self.dimonds, self.portals])
+        return np.stack([current_player, current_base, self.bag, self.diamonds, self.portals])
+        
+    def get_image(self):
+        return self.base + self.bag + self.diamonds + self.portals
 
     def update(self, id, action):
         _from = self.id_to_pos[id]
         _to = GameSim.actions[action](*_from)
         if self.valid(id, *_to):
             self.move(id, _from, _to)
-            return True
-        return False
+        return self.bag[self.id_to_pos[id]], self.id_to_point[id], self.game_ticks >= self.max_ticks, self.game_ticks - self.max_ticks
+
 
     def move(self, id, _from, _to):
-        curr_bag = self.bag[_from] + self.dimonds[_to]
+        curr_bag = self.bag[_from] + self.diamonds[_to]
         if curr_bag < self.max_cap:
             self.bag[_to] = curr_bag
-            self.dimonds[_to] = 0
+            self.diamonds[_to] = 0
         else:
             self.bag[_to] = self.bag[_from]
         self.bag[_from] = 0
@@ -109,10 +125,10 @@ class GameSim():
         if self.id_to_pos[id] == self.id_to_base[id]:
             self.id_to_point[id] += self.bag[_to]
             self.bag[_to] = 0
-        
+
+        if np.sum(self.diamonds) == 0:
+            self.reset_diamonds()
         self.game_ticks += 1
-
-
 
 
     def valid(self, id, x, y):
@@ -145,9 +161,12 @@ class GameSim():
         return True
         
 
-    def random_pos(self, x, y):
+    def random_pos(self, x, y, diamonds=False):
         pos = randint(0, x-1), randint(0, y-1)
-        while pos in self.cached_picks:
+        while pos in self.cached_picks or pos in self.cached_diamonds:
             pos = randint(0, x-1), randint(0, y-1)
-        self.cached_picks.add(pos)
+        if diamonds:
+            self.cached_diamonds.add(pos)
+        else:
+            self.cached_picks.add(pos)
         return pos
