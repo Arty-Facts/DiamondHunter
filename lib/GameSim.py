@@ -1,6 +1,6 @@
 import numpy as np 
 from random import randint
-
+import matplotlib.pyplot as plt
 class GameSim():
     symbols = {
         0: "x ",
@@ -16,7 +16,7 @@ class GameSim():
         3: lambda x, y: (x-1, y), 
     }
 
-    def __init__(self, shape=(15, 12), max_cap=5, nb_plyers=1, nb_diamoinds=20, nb_portals=2, action_space=4, max_ticks=600):
+    def __init__(self, shape=(15, 12), max_cap=5, nb_plyers=1, nb_diamoinds=20, nb_portals=2, action_space=4, max_ticks=600, save_image=False):
         self.max_cap = max_cap
         self.id_to_pos = {}
         self.id_to_base = {}
@@ -25,17 +25,18 @@ class GameSim():
         self.cached_picks = set()
         self.cached_diamonds = set()
         self.shape = shape
-        self.bag = np.zeros(shape=shape, dtype=np.int8)
-        self.base = np.zeros(shape=shape, dtype=np.int8)
-        self.players = np.zeros(shape=shape, dtype=np.int8)
-        self.diamonds = np.zeros(shape=shape, dtype=np.int8)
-        self.portals = np.zeros(shape=shape, dtype=np.int8)
+        self.bag = np.zeros(shape=shape, dtype=np.uint8)
+        self.base = np.zeros(shape=shape, dtype=np.uint8)
+        self.players = np.zeros(shape=shape, dtype=np.uint8)
+        self.diamonds = np.zeros(shape=shape, dtype=np.uint8)
+        self.portals = np.zeros(shape=shape, dtype=np.uint8)
         self.game_ticks = 0
         self.max_ticks = max_ticks
         self.nb_plyers = nb_plyers
         self.nb_diamoinds = nb_diamoinds
         self.nb_portals = nb_portals
         self.action_space = action_space
+        self.save_image = save_image
 
     def __repr__(self):
         stack = [self.players, self.base, self.diamonds, self.portals]
@@ -94,15 +95,20 @@ class GameSim():
         current_base = np.copy(self.base)
         current_base[self.id_to_base[id]] = 2
         return np.stack([current_player, current_base, self.bag, self.diamonds, self.portals])
-        
+
     def get_image(self):
-        return self.base + self.bag + self.diamonds + self.portals
+        return self.players*3 + self.diamonds*4 + self.base * 1 + self.portals*2
 
     def update(self, id, action):
         _from = self.id_to_pos[id]
         _to = GameSim.actions[action](*_from)
         if self.valid(id, *_to):
             self.move(id, _from, _to)
+
+        if self.save_image:
+            plt.imshow(self.get_image())
+            plt.savefig("moves.png")
+
         return self.bag[self.id_to_pos[id]], self.id_to_point[id], self.game_ticks >= self.max_ticks, self.game_ticks - self.max_ticks
 
 
