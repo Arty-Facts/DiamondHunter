@@ -114,7 +114,7 @@ class GameSim():
 
     def move(self, id, _from, _to):
         curr_bag = self.bag[_from] + self.diamonds[_to]
-        if curr_bag < self.max_cap:
+        if curr_bag <= self.max_cap:
             self.bag[_to] = curr_bag
             self.diamonds[_to] = 0
         else:
