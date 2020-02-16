@@ -159,7 +159,7 @@ def optimize_model():
 
 
 for i_episode in range(num_episodes):
-    print(f"\repisode: {i_episode}/{num_episodes}", end="\r")
+    print(f"\repisode: {i_episode}/{num_episodes}, steps_done: {steps_done}", end="\r")
     # Initialize the environment and state
     env.new_game()
     last_screen = get_screen()
