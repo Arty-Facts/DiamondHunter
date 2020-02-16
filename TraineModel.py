@@ -39,9 +39,9 @@ BATCH_SIZE = 128
 GAMMA = 0.999
 EPS_START = 0.9
 EPS_END = 0.05
-EPS_DECAY = 10000
+EPS_DECAY = 100000*600
 TARGET_UPDATE = 10
-num_episodes = 100000
+num_episodes = 1000000
 
 Transition = namedtuple('Transition',
                         ('state', 'action', 'next_state', 'reward'))
@@ -67,7 +67,7 @@ def select_action(state):
     sample = random.random()
     eps_threshold = EPS_END + (EPS_START - EPS_END) *         math.exp(-1. * steps_done / EPS_DECAY)
     steps_done += 1
-    if steps_done < 1000:
+    if steps_done < 10000*600:
         data = env.get_data(0)
         action = agent.next_move(data)
         if action == 4:
