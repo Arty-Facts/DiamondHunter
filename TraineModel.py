@@ -110,6 +110,7 @@ def plot_durations():
 # target_net.load_state_dict(ckpt["target_net"])
 # optimizer.load_state_dict(ckpt["optimizer"])
 # episode_durations = ckpt["episode_durations"]
+# steps_done = ckpt["steps_done"]
 
 
 def optimize_model():
@@ -196,7 +197,8 @@ for i_episode in range(num_episodes):
             'policy_net': policy_net.state_dict(),
             'target_net': target_net.state_dict(),
             'optimizer': optimizer.state_dict(),
-            'episode_durations':episode_durations
+            'episode_durations':episode_durations, 
+            'steps_done': steps_done
             }, "checkpoints/latest")
         target_net.load_state_dict(policy_net.state_dict())
 
