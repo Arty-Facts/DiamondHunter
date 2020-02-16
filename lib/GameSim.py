@@ -1,6 +1,8 @@
 import numpy as np 
 from random import randint
 import matplotlib.pyplot as plt
+
+from .Data import Data
 class GameSim():
     symbols = {
         0: "x ",
@@ -85,8 +87,8 @@ class GameSim():
         self.reset_diamonds()
 
     def reset_diamonds(self):
-        self.cached_picks = set()
-        for x,y in (self.random_pos(*self.shape) for _ in range(self.nb_diamoinds)):
+        self.cached_diamonds = set()
+        for x,y in (self.random_pos(*self.shape, diamonds=True) for _ in range(self.nb_diamoinds)):
             self.diamonds[x][y] = 1
 
     def get_state(self, id):
@@ -97,7 +99,7 @@ class GameSim():
         return np.stack([current_player, current_base, self.bag, self.diamonds, self.portals])
 
     def get_image(self):
-        return self.players*3 + self.diamonds*4 + self.base * 1 + self.portals*2
+        return self.players*4 + self.base*3 + self.diamonds*2 +  self.portals*1
 
     def update(self, id, action):
         _from = self.id_to_pos[id]
@@ -109,7 +111,10 @@ class GameSim():
             plt.imshow(self.get_image())
             plt.savefig("moves.png")
 
-        return self.bag[self.id_to_pos[id]], self.id_to_point[id], self.game_ticks >= self.max_ticks, self.game_ticks - self.max_ticks
+        if np.sum(self.diamonds) == 0:
+            self.reset_diamonds()
+
+        return self.bag[self.id_to_pos[id]], self.id_to_point[id], self.game_ticks >= self.max_ticks, self.max_ticks - self.game_ticks 
 
 
     def move(self, id, _from, _to):
@@ -132,8 +137,7 @@ class GameSim():
             self.id_to_point[id] += self.bag[_to]
             self.bag[_to] = 0
 
-        if np.sum(self.diamonds) == 0:
-            self.reset_diamonds()
+        
         self.game_ticks += 1
 
 
@@ -158,7 +162,6 @@ class GameSim():
         for _id, (_x, _y) in self.id_to_pos.items():
             if _id == id:
                 continue
-            print(_x, _y)
             if x == _x and y == _y:
                 return False
             if dest_x == _x and dest_y == _y:
@@ -166,6 +169,39 @@ class GameSim():
 
         return True
         
+    def get_data(self, id):
+        player = {
+            "name": id,
+            "pos": self.id_to_pos[id],
+            "diamond": self.bag[self.id_to_pos[id]], 
+            "base": self.id_to_base[id]
+        }
+
+        agents = []
+        for i, pos in self.id_to_pos.items():
+            agents.append({
+                "name": i,
+                "pos": pos,
+                "diamond": self.bag[pos], 
+                "base": self.id_to_base[i]
+            })
+        diamonds = []
+        for y in range(self.shape[1]):
+            for x in range(self.shape[0]):
+                value = self.diamonds[x,y]
+                if value > 0:
+                    diamonds.append({
+                        "pos": (x,y),
+                        "value": value
+                    })
+        portals = []
+        for i, p in self.portal_to.items():
+            portals.append({
+                "pos":p
+            })
+
+        return Data(player, agents, diamonds, portals)
+
 
     def random_pos(self, x, y, diamonds=False):
         pos = randint(0, x-1), randint(0, y-1)
