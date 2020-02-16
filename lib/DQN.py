@@ -28,5 +28,5 @@ class DQN(nn.Module):
     def forward(self, x):
         x = F.relu(self.bn1(self.conv1(x)))
         x = F.relu(self.bn2(self.conv2(x)))
-        x = F.relu(self.hiden(x))
-        return self.head(x.view(x.size(0), -1))
+        x = F.relu(self.hiden(x.view(x.size(0), -1)))
+        return self.head(x)

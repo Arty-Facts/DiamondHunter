@@ -41,7 +41,7 @@ EPS_START = 0.9
 EPS_END = 0.05
 EPS_DECAY = 10000
 TARGET_UPDATE = 10
-num_episodes = 1000
+num_episodes = 100000
 
 Transition = namedtuple('Transition',
                         ('state', 'action', 'next_state', 'reward'))
