@@ -34,7 +34,7 @@ def get_screen():
 
 env.new_game()
 
-BATCH_SIZE = 128
+BATCH_SIZE = 2**10
 GAMMA = 0.999
 EPS_START = 0.9
 EPS_END = 0.05
@@ -122,7 +122,7 @@ def optimize_model():
 
     # Compute a mask of non-final states and concatenate the batch elements
     # (a final state would've been the one after which simulation ended)
-    non_final_mask = torch.tensor(tuple(map(lambda s: s[0] is not None,
+    non_final_mask = torch.tensor(tuple(map(lambda s: s is not None,
                                           batch.next_state)), device=device, dtype=torch.bool)
    
     # for d in batch.next_state:
