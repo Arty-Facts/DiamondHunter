@@ -27,8 +27,8 @@ from time import time
 
 
 
-NB_PLAYERS = 5
-BATCH_SIZE = 128
+NB_PLAYERS = 3
+BATCH_SIZE = 32
 GAMMA = 0.999
 EPS_START = 0.9
 EPS_END = 0.05
