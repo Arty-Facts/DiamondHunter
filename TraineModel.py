@@ -68,7 +68,7 @@ def select_action(state, id=0):
     sample = random.random()
     eps_threshold = EPS_END + (EPS_START - EPS_END) * math.exp(-1. * steps_done / EPS_DECAY)
     steps_done += 1
-    if steps_done < 100*600*NB_PLAYERS:
+    if steps_done < 100*600*NB_PLAYERS and False:
         data = env.get_data(id)
         action = agent.next_move(data)
         if action == 4:
