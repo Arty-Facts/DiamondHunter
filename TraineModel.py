@@ -24,29 +24,30 @@ from random import randint
 
 from time import time
 
-env = GameSim(device="cuda" if torch.cuda.is_available() else "cpu", save_image=False)
+
+
+
+NB_PLAYERS = 5
+BATCH_SIZE = 128
+GAMMA = 0.999
+EPS_START = 0.9
+EPS_END = 0.05
+EPS_DECAY = 10000*600*NB_PLAYERS
+TARGET_UPDATE = 10
+num_episodes = 1000000*NB_PLAYERS
+env = GameSim(max_ticks=600*NB_PLAYERS ,device="cuda" if torch.cuda.is_available() else "cpu", save_image=False)
 
 # if gpu is to be used
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+Transition = namedtuple('Transition',
+                        ('state', 'action', 'next_state', 'reward'))
 
 def get_screen():
     screen, bag = env.get_state(0)
     return screen.unsqueeze(0), bag.unsqueeze(0)
 
-
 env.new_game()
-
-BATCH_SIZE = 16
-GAMMA = 0.999
-EPS_START = 0.9
-EPS_END = 0.05
-EPS_DECAY = 100000*600
-TARGET_UPDATE = 10
-num_episodes = 1000000
-
-Transition = namedtuple('Transition',
-                        ('state', 'action', 'next_state', 'reward'))
-
 init_screen = get_screen()
 
 # Get number of actions 
@@ -57,18 +58,18 @@ target_net = DQN().to(device)
 target_net.load_state_dict(policy_net.state_dict())
 target_net.eval()
 agent = BFSAgent()
-optimizer = optim.RMSprop(policy_net.parameters())
+optimizer = optim.RMSprop(policy_net.parameters(), lr=1e-3)
 memory = ReplayMemory(100000)
 
 steps_done = 0
 
-def select_action(state):
+def select_action(state, id=0):
     global steps_done
     sample = random.random()
     eps_threshold = EPS_END + (EPS_START - EPS_END) * math.exp(-1. * steps_done / EPS_DECAY)
     steps_done += 1
-    if steps_done < 1000*600 and False:
-        data = env.get_data(0)
+    if steps_done < 1000*600*NB_PLAYERS:
+        data = env.get_data(id)
         action = agent.next_move(data)
         if action == 4:
             action = randint(0,3)
@@ -176,8 +177,8 @@ for i_episode in range(num_episodes):
     state = current_screen - last_screen , current_bag - last_bag
     for t in count():
         # Select and perform an action
-        action = select_action(state)
-        _, reward, done, _ = env.update(0, action.item())
+        action = select_action(state, t%NB_PLAYERS)
+        _, reward, done, _ = env.update(t%NB_PLAYERS, action.item())
         reward = torch.tensor([reward], device=device)
 
         # Observe new state
