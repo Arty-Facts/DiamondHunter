@@ -35,7 +35,7 @@ EPS_END = 0.05
 EPS_DECAY = 10000*600*NB_PLAYERS
 TARGET_UPDATE = 10
 num_episodes = 1000000*NB_PLAYERS
-env = GameSim(max_ticks=600*NB_PLAYERS ,device="cuda" if torch.cuda.is_available() else "cpu", save_image=False)
+env = GameSim(max_ticks=600*NB_PLAYERS, nb_plyers=NB_PLAYERS ,device="cuda" if torch.cuda.is_available() else "cpu", save_image=False)
 
 # if gpu is to be used
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -47,7 +47,7 @@ def get_screen():
     screen, bag = env.get_state(0)
     return screen.unsqueeze(0), bag.unsqueeze(0)
 
-env.new_game()
+env.new_game( nb_plyers=NB_PLAYERS)
 init_screen = get_screen()
 
 # Get number of actions 
@@ -171,7 +171,7 @@ def optimize_model():
 for i_episode in range(num_episodes):
     print(f"\repisode: {i_episode}/{num_episodes}, steps_done: {steps_done}", end="\r")
     # Initialize the environment and state
-    env.new_game()
+    env.new_game(nb_plyers=NB_PLAYERS)
     last_screen, last_bag = get_screen()
     current_screen, current_bag = get_screen()
     state = current_screen - last_screen , current_bag - last_bag
