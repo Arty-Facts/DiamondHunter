@@ -27,7 +27,7 @@ from time import time
 
 
 
-NB_PLAYERS = 3
+NB_PLAYERS = 2
 BATCH_SIZE = 16
 GAMMA = 0.999
 EPS_START = 0.9
