@@ -175,10 +175,12 @@ for i_episode in range(num_episodes):
     last_screen, last_bag = get_screen()
     current_screen, current_bag = get_screen()
     state = current_screen - last_screen , current_bag - last_bag
+    rewards = [0 for _ in range(NB_PLAYERS)]
     for t in count():
         # Select and perform an action
         action = select_action(state, t%NB_PLAYERS)
         _, reward, done, _ = env.update(t%NB_PLAYERS, action.item())
+        rewards[t%NB_PLAYERS] = reward
         reward = torch.tensor([reward], device=device)
 
         # Observe new state
@@ -198,7 +200,7 @@ for i_episode in range(num_episodes):
         # Perform one step of the optimization (on the target network)
         optimize_model()
         if done:
-            episode_durations.append(reward)
+            episode_durations.append(sum(reward)/NB_PLAYERS)
             plot_durations()
             break
     # Update the target network, copying all weights and biases in DQN
