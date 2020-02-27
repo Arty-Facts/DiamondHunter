@@ -125,11 +125,12 @@ class GameSim():
         if self.save_image:
             plt.imshow(self.get_image())
             plt.savefig("moves.png")
+            plt.close()
 
         if torch.sum(self.diamonds) == 0:
             self.reset_diamonds()
 
-        return self.bag[self.id_to_pos[id]], self.id_to_point[id], self.game_ticks >= self.max_ticks, self.max_ticks - self.game_ticks 
+        return self.bag[self.id_to_pos[id]], self.id_to_point[id] + float(self.bag[self.id_to_pos[id]])*0.1, self.game_ticks >= self.max_ticks, self.max_ticks - self.game_ticks 
 
 
     def move(self, id, _from, _to):

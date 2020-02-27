@@ -18,7 +18,7 @@ class DQN(nn.Module):
         self.hiden = nn.Sequential(
             nn.Linear(256 + bag, hiden, bias=True),
             nn.ReLU(inplace=True),
-            nn.LSTM(hiden, hiden, bias=True),
+            nn.Linear(hiden, hiden, bias=True),
             nn.ReLU(inplace=True)
         )
         self.out = nn.Linear(hiden, outputs, bias=True)
@@ -28,10 +28,10 @@ class DQN(nn.Module):
     # during optimization. Returns tensor([[left0exp,right0exp]...]).
     def forward(self, inputs):
         state, bag = inputs
-        for m in self.encoder:
-            state = m(state)
-            print(state.shape)
-        x = torch.cat([state.squeeze(), bag])
+        #for m in self.encoder:
+        state = self.encoder(state)
+        #print(state.shape)
+        x = torch.cat([state, bag], dim=1)
         x = self.hiden(x)
-        print(x.shape)
+        #print(x.shape)
         return self.out(x)

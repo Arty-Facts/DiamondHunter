@@ -65,7 +65,7 @@ def select_action(state):
     sample = random.random()
     eps_threshold = EPS_END + (EPS_START - EPS_END) * math.exp(-1. * steps_done / EPS_DECAY)
     steps_done += 1
-    if steps_done < 1000*600:
+    if steps_done < 1000*600 and False:
         data = env.get_data(0)
         action = agent.next_move(data)
         if action == 4:
@@ -122,11 +122,19 @@ def optimize_model():
 
     # Compute a mask of non-final states and concatenate the batch elements
     # (a final state would've been the one after which simulation ended)
-    non_final_mask = torch.tensor(tuple(map(lambda s: s is not None,
+    non_final_mask = torch.tensor(tuple(map(lambda s: s[0] is not None,
                                           batch.next_state)), device=device, dtype=torch.bool)
-    non_final_next_states = torch.cat([s for s in batch.next_state
-                                                if s is not None])
-    state_batch = torch.cat(batch.state)
+   
+    # for d in batch.next_state:
+    #     if d is not None:
+    #         s, b = d
+    #         print(s.shape)
+    #         print(b.shape)
+    non_final_next_states = (torch.cat([s[0] for s in batch.next_state if s is not None]),
+                             torch.cat([s[1] for s in batch.next_state if s is not None]))
+
+    state_batch = (torch.cat(tuple(map(lambda x: x[0], batch.state))),
+                   torch.cat(tuple(map(lambda x: x[1], batch.state))))
     action_batch = torch.cat(batch.action)
     reward_batch = torch.cat(batch.reward)
 
@@ -140,6 +148,7 @@ def optimize_model():
     # on the "older" target_net; selecting their best reward with max(1)[0].
     # This is merged based on the mask, such that we'll have either the expected
     # state value or 0 in case the state was final.
+    #print(non_final_mask)
     next_state_values = torch.zeros(BATCH_SIZE, device=device)
     next_state_values[non_final_mask] = target_net(non_final_next_states).max(1)[0].detach()
     # Compute the expected Q values
