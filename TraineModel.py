@@ -28,13 +28,13 @@ from time import time
 
 
 NB_PLAYERS = 3
-BATCH_SIZE = 32
+BATCH_SIZE = 16
 GAMMA = 0.999
 EPS_START = 0.9
 EPS_END = 0.05
-EPS_DECAY = 10000*600*NB_PLAYERS
+EPS_DECAY = 1000*600*NB_PLAYERS
 TARGET_UPDATE = 10
-num_episodes = 1000000*NB_PLAYERS
+num_episodes = 100000*NB_PLAYERS
 env = GameSim(max_ticks=600*NB_PLAYERS, nb_plyers=NB_PLAYERS ,device="cuda" if torch.cuda.is_available() else "cpu", save_image=False)
 
 # if gpu is to be used
@@ -68,7 +68,7 @@ def select_action(state, id=0):
     sample = random.random()
     eps_threshold = EPS_END + (EPS_START - EPS_END) * math.exp(-1. * steps_done / EPS_DECAY)
     steps_done += 1
-    if steps_done < 1000*600*NB_PLAYERS:
+    if steps_done < 100*600*NB_PLAYERS:
         data = env.get_data(id)
         action = agent.next_move(data)
         if action == 4:
