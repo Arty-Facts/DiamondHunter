@@ -34,7 +34,7 @@ def get_screen():
 
 env.new_game()
 
-BATCH_SIZE = 2**15
+BATCH_SIZE = 2**10
 GAMMA = 0.999
 EPS_START = 0.9
 EPS_END = 0.05
