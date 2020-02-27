@@ -22,6 +22,8 @@ from agents.BFSAgent import BFSAgent
 
 from random import randint
 
+from time import time
+
 env = GameSim(device="cuda" if torch.cuda.is_available() else "cpu", save_image=False)
 
 # if gpu is to be used
@@ -34,7 +36,7 @@ def get_screen():
 
 env.new_game()
 
-BATCH_SIZE = 2**10
+BATCH_SIZE = 16
 GAMMA = 0.999
 EPS_START = 0.9
 EPS_END = 0.05
