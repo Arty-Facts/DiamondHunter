@@ -22,15 +22,14 @@ from agents.BFSAgent import BFSAgent
 
 from random import randint
 
-env = GameSim(save_image=False)
+env = GameSim(device="cuda" if torch.cuda.is_available() else "cpu", save_image=False)
 
 # if gpu is to be used
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def get_screen():
-    screen = env.get_state(0)
-    screen = torch.from_numpy(screen)
-    return screen.unsqueeze(0).to(device=device, dtype=torch.float32)
+    screen, bag = env.get_state(0)
+    return screen.unsqueeze(0), bag.unsqueeze(0)
 
 
 env.new_game()
@@ -47,27 +46,26 @@ Transition = namedtuple('Transition',
                         ('state', 'action', 'next_state', 'reward'))
 
 init_screen = get_screen()
-_, _, screen_height, screen_width = init_screen.shape
 
 # Get number of actions 
 n_actions = env.action_space
 
-policy_net = DQN(screen_height, screen_width, n_actions).to(device)
-target_net = DQN(screen_height, screen_width, n_actions).to(device)
+policy_net = DQN().to(device)
+target_net = DQN().to(device)
 target_net.load_state_dict(policy_net.state_dict())
 target_net.eval()
 agent = BFSAgent()
 optimizer = optim.RMSprop(policy_net.parameters())
-memory = ReplayMemory(10000)
+memory = ReplayMemory(100000)
 
 steps_done = 0
 
 def select_action(state):
     global steps_done
     sample = random.random()
-    eps_threshold = EPS_END + (EPS_START - EPS_END) *         math.exp(-1. * steps_done / EPS_DECAY)
+    eps_threshold = EPS_END + (EPS_START - EPS_END) * math.exp(-1. * steps_done / EPS_DECAY)
     steps_done += 1
-    if steps_done < 10000*600:
+    if steps_done < 1000*600:
         data = env.get_data(0)
         action = agent.next_move(data)
         if action == 4:
@@ -162,9 +160,9 @@ for i_episode in range(num_episodes):
     print(f"\repisode: {i_episode}/{num_episodes}, steps_done: {steps_done}", end="\r")
     # Initialize the environment and state
     env.new_game()
-    last_screen = get_screen()
-    current_screen = get_screen()
-    state = current_screen - last_screen
+    last_screen, last_bag = get_screen()
+    current_screen, current_bag = get_screen()
+    state = current_screen - last_screen , current_bag - last_bag
     for t in count():
         # Select and perform an action
         action = select_action(state)
@@ -172,10 +170,10 @@ for i_episode in range(num_episodes):
         reward = torch.tensor([reward], device=device)
 
         # Observe new state
-        last_screen = current_screen
-        current_screen = get_screen()
+        last_screen, last_bag = current_screen, current_bag 
+        current_screen, current_bag = get_screen()
         if not done:
-            next_state = current_screen - last_screen
+            next_state = current_screen - last_screen, current_bag - last_bag
         else:
             next_state = None
 

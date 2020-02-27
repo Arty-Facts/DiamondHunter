@@ -4,29 +4,34 @@ import torch.nn.functional as F
 
 class DQN(nn.Module):
 
-    def __init__(self, h, w, outputs, hiden = 300):
+    def __init__(self, outputs=4, in_chanals=6, bag=5, hiden=256):
         super(DQN, self).__init__()
-        self.conv1 = nn.Conv2d(5, 16, kernel_size=4, stride=1)
-        self.bn1 = nn.BatchNorm2d(16)
-        self.conv2 = nn.Conv2d(16, 16, kernel_size=4, stride=1)
-        self.bn2 = nn.BatchNorm2d(16)
-
-
-        # Number of Linear input connections depends on output of conv2d layers
-        # and therefore the input image size, so compute it.
-        def conv2d_size_out(size, kernel_size = 4, stride = 1):
-            return (size - (kernel_size - 1) - 1) // stride  + 1
-        convw = conv2d_size_out(conv2d_size_out(w))
-        convh = conv2d_size_out(conv2d_size_out(h))
-        linear_input_size = convw * convh * 16
-        self.hiden = nn.Linear(linear_input_size, hiden)
-        self.head = nn.Linear(hiden, outputs)
+        self.encoder = nn.Sequential(
+                            nn.Conv2d(in_chanals, 64, kernel_size=3, stride=2, bias=True), #7, 5
+                            nn.ReLU(inplace=True),
+                            nn.Conv2d(64, 128, kernel_size=3, stride=2, bias=True),#3, 2
+                            nn.ReLU(inplace=True),
+                            nn.Conv2d(128, 256, kernel_size=2, stride=2, bias=True),#1, 1
+                            nn.ReLU(inplace=True),
+                            nn.Flatten()
+        )
+        self.hiden = nn.Sequential(
+            nn.Linear(256 + bag, hiden, bias=True),
+            nn.ReLU(inplace=True),
+            nn.LSTM(hiden, hiden, bias=True),
+            nn.ReLU(inplace=True)
+        )
+        self.out = nn.Linear(hiden, outputs, bias=True)
 
 
     # Called with either one element to determine next action, or a batch
     # during optimization. Returns tensor([[left0exp,right0exp]...]).
-    def forward(self, x):
-        x = F.relu(self.bn1(self.conv1(x)))
-        x = F.relu(self.bn2(self.conv2(x)))
-        x = F.relu(self.hiden(x.view(x.size(0), -1)))
-        return self.head(x)
+    def forward(self, inputs):
+        state, bag = inputs
+        for m in self.encoder:
+            state = m(state)
+            print(state.shape)
+        x = torch.cat([state.squeeze(), bag])
+        x = self.hiden(x)
+        print(x.shape)
+        return self.out(x)

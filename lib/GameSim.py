@@ -1,4 +1,5 @@
-import numpy as np 
+import numpy as torch 
+import torch
 from random import randint
 import matplotlib.pyplot as plt
 
@@ -18,20 +19,29 @@ class GameSim():
         3: lambda x, y: (x-1, y), 
     }
 
-    def __init__(self, shape=(15, 12), max_cap=5, nb_plyers=1, nb_diamoinds=20, nb_portals=2, action_space=4, max_ticks=600, save_image=False):
+    def __init__(self, shape=(15, 12), 
+                       max_cap=5, 
+                       nb_plyers=1, 
+                       nb_diamoinds=20, 
+                       nb_portals=2, 
+                       action_space=4, 
+                       max_ticks=600, 
+                       save_image=False, 
+                       device="cuda"):
+        self.device = torch.device(device)
         self.max_cap = max_cap
         self.id_to_pos = {}
         self.id_to_base = {}
-        self.id_to_point = np.zeros(nb_plyers, dtype=np.long)
+        self.id_to_point = torch.zeros(nb_plyers, dtype=torch.long, device=self.device, requires_grad=False)
         self.portal_to = {}
         self.cached_picks = set()
         self.cached_diamonds = set()
         self.shape = shape
-        self.bag = np.zeros(shape=shape, dtype=np.uint8)
-        self.base = np.zeros(shape=shape, dtype=np.uint8)
-        self.players = np.zeros(shape=shape, dtype=np.uint8)
-        self.diamonds = np.zeros(shape=shape, dtype=np.uint8)
-        self.portals = np.zeros(shape=shape, dtype=np.uint8)
+        self.bag = torch.zeros(shape, dtype=torch.uint8, device=self.device, requires_grad=False)
+        self.base = torch.zeros(shape, dtype=torch.uint8, device=self.device, requires_grad=False)
+        self.players = torch.zeros(shape, dtype=torch.uint8, device=self.device, requires_grad=False)
+        self.diamonds = torch.zeros(shape, dtype=torch.uint8, device=self.device, requires_grad=False)
+        self.portals = torch.zeros(shape, dtype=torch.uint8, device=self.device, requires_grad=False)
         self.game_ticks = 0
         self.max_ticks = max_ticks
         self.nb_plyers = nb_plyers
@@ -58,11 +68,11 @@ class GameSim():
         return self.id_to_pos.keys()
 
     def clear_obj(self):
-        self.bag.fill(0)
-        self.base.fill(0)
-        self.players.fill(0)
-        self.diamonds.fill(0)
-        self.portals.fill(0)
+        self.bag.fill_(0)
+        self.base.fill_(0)
+        self.players.fill_(0)
+        self.diamonds.fill_(0)
+        self.portals.fill_(0)
         self.cached_picks = set()
         self.portal_to = {}
         self.game_ticks = 0
@@ -74,7 +84,7 @@ class GameSim():
         self.clear_obj()
         self.id_to_pos = {p: self.random_pos(*self.shape) for p in range(nb_plyers)}
         self.id_to_base = {p: self.id_to_pos[p] for p in range(nb_plyers)}
-        self.id_to_point = np.zeros(nb_plyers, dtype=np.long)
+        self.id_to_point = torch.zeros(nb_plyers, dtype=torch.long)
 
         for players, (x,y) in self.id_to_pos.items():
             self.base[x][y] = 1
@@ -83,7 +93,6 @@ class GameSim():
         for i, (x,y) in enumerate(portals):
             self.portals[x][y] = 1
             self.portal_to[(x,y)]= portals[(i+1)%nb_portals]
-        
         self.reset_diamonds()
 
     def reset_diamonds(self):
@@ -92,14 +101,20 @@ class GameSim():
             self.diamonds[x][y] = 1
 
     def get_state(self, id):
-        current_player = np.copy(self.players)
-        current_player[self.id_to_pos[id]] = 2
-        current_base = np.copy(self.base)
-        current_base[self.id_to_base[id]] = 2
-        return np.stack([current_player, current_base, self.bag, self.diamonds, self.portals])
+        current_player = self.players.clone()
+        other_players = self.players.clone()
+        current_player[self.id_to_pos[id]] = 1
+        other_players[self.id_to_pos[id]] = 0
+        current_base = self.base.clone()
+        other_bases = self.base.clone()
+        current_base[self.id_to_base[id]] = 1
+        other_bases[self.id_to_base[id]] = 0
+        bag = torch.zeros(self.max_cap, dtype=torch.float32, device=self.device)
+        bag[self.bag[self.id_to_pos[id]]-1] = 1
+        return torch.stack([current_player, other_players, current_base,  other_bases, self.diamonds, self.portals]).float(), bag
 
     def get_image(self):
-        return self.players*4 + self.base*3 + self.diamonds*2 +  self.portals*1
+        return (self.players*4 + self.base*3 + self.diamonds*2 +  self.portals*1).cpu()
 
     def update(self, id, action):
         _from = self.id_to_pos[id]
@@ -111,7 +126,7 @@ class GameSim():
             plt.imshow(self.get_image())
             plt.savefig("moves.png")
 
-        if np.sum(self.diamonds) == 0:
+        if torch.sum(self.diamonds) == 0:
             self.reset_diamonds()
 
         return self.bag[self.id_to_pos[id]], self.id_to_point[id], self.game_ticks >= self.max_ticks, self.max_ticks - self.game_ticks 
@@ -137,7 +152,6 @@ class GameSim():
             self.id_to_point[id] += self.bag[_to]
             self.bag[_to] = 0
 
-        
         self.game_ticks += 1
 
 
