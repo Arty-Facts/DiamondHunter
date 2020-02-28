@@ -30,7 +30,7 @@ from time import time
 NB_PLAYERS = 5
 BATCH_SIZE = 16
 GAMMA = 0.999
-EPS_START = 0.9
+EPS_START = 0.999
 EPS_END = 0.05
 EPS_DECAY = 1000*600*NB_PLAYERS
 TARGET_UPDATE = 10
@@ -169,7 +169,7 @@ def optimize_model():
 
 
 for i_episode in range(num_episodes):
-    print(f"\repisode: {i_episode}/{num_episodes}, steps_done: {steps_done}", end="\r")
+    print(f"\repisode: {i_episode}/{num_episodes}, steps_done: {steps_done}, exp: {EPS_END + (EPS_START - EPS_END) * math.exp(-1. * steps_done / EPS_DECAY)}", end="\r")
     # Initialize the environment and state
     env.new_game(nb_plyers=NB_PLAYERS)
     last_screen, last_bag = get_screen()
