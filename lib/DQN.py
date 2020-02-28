@@ -14,16 +14,14 @@ class DQN(nn.Module):
                             nn.BatchNorm2d(128),
                             nn.ReLU(inplace=True),
                             nn.Conv2d(128, 256, kernel_size=2, stride=2, bias=True),#1, 1
-                            nn.BatchNorm2d(256),
                             nn.ReLU(inplace=True),
                             nn.Flatten()
         )
         self.hiden = nn.Sequential(
             nn.Linear(256 + bag, hiden, bias=True),
-            nn.BatchNorm2d(hiden),
             nn.ReLU(inplace=True),
-            nn.Linear(hiden, hiden, bias=True),
-            nn.Softmax()
+            nn.Linear(hiden, outputs, bias=True),
+            nn.Softmax(dim=1)
         )
 
     def forward(self, inputs):
@@ -33,5 +31,5 @@ class DQN(nn.Module):
         #print(state.shape)
         x = torch.cat([state, bag], dim=1)
         x = self.hiden(x)
-        #print(x.shape)
+        #print(x)
         return x
