@@ -34,7 +34,7 @@ EPS_START = 0.999
 EPS_END = 0.05
 EPS_DECAY = 1000*600*NB_PLAYERS
 TARGET_UPDATE = 10
-num_episodes = 100000*NB_PLAYERS
+num_episodes = 1000000*NB_PLAYERS
 env = GameSim(max_ticks=600*NB_PLAYERS, nb_plyers=NB_PLAYERS ,device="cuda" if torch.cuda.is_available() else "cpu", save_image=False)
 
 # if gpu is to be used
