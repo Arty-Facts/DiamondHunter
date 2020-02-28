@@ -26,9 +26,6 @@ class DQN(nn.Module):
             nn.Softmax()
         )
 
-
-    # Called with either one element to determine next action, or a batch
-    # during optimization. Returns tensor([[left0exp,right0exp]...]).
     def forward(self, inputs):
         state, bag = inputs
         #for m in self.encoder:
