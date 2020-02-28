@@ -8,8 +8,10 @@ class DQN(nn.Module):
         super(DQN, self).__init__()
         self.encoder = nn.Sequential(
                             nn.Conv2d(in_chanals, 64, kernel_size=3, stride=2, bias=True), #7, 5
+                            nn.BatchNorm2d(64),
                             nn.ReLU(inplace=True),
                             nn.Conv2d(64, 128, kernel_size=3, stride=2, bias=True),#3, 2
+                            nn.BatchNorm2d(128),
                             nn.ReLU(inplace=True),
                             nn.Conv2d(128, 256, kernel_size=2, stride=2, bias=True),#1, 1
                             nn.ReLU(inplace=True),
@@ -18,14 +20,10 @@ class DQN(nn.Module):
         self.hiden = nn.Sequential(
             nn.Linear(256 + bag, hiden, bias=True),
             nn.ReLU(inplace=True),
-            nn.Linear(hiden, hiden, bias=True),
-            nn.ReLU(inplace=True)
+            nn.Linear(hiden, outputs, bias=True),
+            nn.Softmax(dim=1)
         )
-        self.out = nn.Linear(hiden, outputs, bias=True)
 
-
-    # Called with either one element to determine next action, or a batch
-    # during optimization. Returns tensor([[left0exp,right0exp]...]).
     def forward(self, inputs):
         state, bag = inputs
         #for m in self.encoder:
@@ -33,5 +31,5 @@ class DQN(nn.Module):
         #print(state.shape)
         x = torch.cat([state, bag], dim=1)
         x = self.hiden(x)
-        #print(x.shape)
-        return self.out(x)
+        #print(x)
+        return x
