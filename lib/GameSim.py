@@ -119,8 +119,9 @@ class GameSim():
     def update(self, id, action):
         _from = self.id_to_pos[id]
         _to = GameSim.actions[action](*_from)
+        home, carry = -1, -1
         if self.valid(id, *_to):
-            self.move(id, _from, _to)
+            home, carry = self.move(id, _from, _to)
 
         if self.save_image:
             plt.imshow(self.get_image())
@@ -130,13 +131,16 @@ class GameSim():
         if torch.sum(self.diamonds) == 0:
             self.reset_diamonds()
 
-        return self.bag[self.id_to_pos[id]], self.id_to_point[id] + float(self.bag[self.id_to_pos[id]])*0.1, self.game_ticks >= self.max_ticks, self.max_ticks - self.game_ticks 
+        return self.bag[self.id_to_pos[id]], hoem + carry*0.1, self.game_ticks >= self.max_ticks, self.max_ticks - self.game_ticks 
 
 
     def move(self, id, _from, _to):
+        home = 0
+        carry = 0
         curr_bag = self.bag[_from] + self.diamonds[_to]
         if curr_bag <= self.max_cap:
             self.bag[_to] = curr_bag
+            carry += curr_bag
             self.diamonds[_to] = 0
         else:
             self.bag[_to] = self.bag[_from]
@@ -151,9 +155,11 @@ class GameSim():
 
         if self.id_to_pos[id] == self.id_to_base[id]:
             self.id_to_point[id] += self.bag[_to]
+            home += self.bag[_to]
             self.bag[_to] = 0
 
         self.game_ticks += 1
+        return home, carry
 
 
     def valid(self, id, x, y):
