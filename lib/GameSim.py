@@ -131,7 +131,7 @@ class GameSim():
         if torch.sum(self.diamonds) == 0:
             self.reset_diamonds()
 
-        return self.bag[self.id_to_pos[id]], hoem + carry*0.1, self.game_ticks >= self.max_ticks, self.max_ticks - self.game_ticks 
+        return self.bag[self.id_to_pos[id]], home + carry*0.1, self.game_ticks >= self.max_ticks, self.max_ticks - self.game_ticks 
 
 
     def move(self, id, _from, _to):
