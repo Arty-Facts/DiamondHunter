@@ -23,17 +23,20 @@ from agents.BFSAgent import BFSAgent
 from random import randint
 
 from time import time
+from datetime import datetime
 
 
 
 
-NB_PLAYERS = 5
-BATCH_SIZE = 16
-GAMMA = 0.999
+NB_PLAYERS = 3
+BATCH_SIZE = 512
+GAMMA = 0.99
+LR = 1e-4
 EPS_START = 0.999
-EPS_END = 0.05
+EPS_END = 0.01
 EPS_DECAY = 1000*600*NB_PLAYERS
 TARGET_UPDATE = 10
+REPLAY_SIZE = 1000*600*NB_PLAYERS
 num_episodes = 1000000*NB_PLAYERS
 env = GameSim(max_ticks=600*NB_PLAYERS, nb_plyers=NB_PLAYERS ,device="cuda" if torch.cuda.is_available() else "cpu", save_image=False)
 
@@ -58,8 +61,8 @@ target_net = DQN().to(device)
 target_net.load_state_dict(policy_net.state_dict())
 target_net.eval()
 agent = BFSAgent()
-optimizer = optim.RMSprop(policy_net.parameters(), lr=1e-3)
-memory = ReplayMemory(100000)
+optimizer = optim.RMSprop(policy_net.parameters(), lr=LR)
+memory = ReplayMemory(REPLAY_SIZE)
 
 steps_done = 0
 
@@ -88,6 +91,10 @@ def select_action(state, id=0):
 
 episode_durations = []
 
+now = datetime.now()
+now =  now.strftime("%Y.%m.%d_%H.%M.%S")
+
+
 def plot_durations():
     plt.figure(2)
     plt.clf()
@@ -97,11 +104,12 @@ def plot_durations():
     plt.ylabel('Diamonds')
     plt.plot(durations_t.numpy())
     # Take 100 episode averages and plot them too
-    if len(durations_t) >= 100:
-        means = durations_t.unfold(0, 100, 1).mean(1).view(-1)
-        means = torch.cat((torch.zeros(99), means))
+    if len(durations_t) >= 10:
+        means = durations_t.unfold(0, 10, 1).mean(1).view(-1)
+        means = torch.cat((torch.zeros(9), means))
         plt.plot(means.numpy())
-    plt.savefig('progress.png')
+    plt.grid()
+    plt.savefig(f'progress{now}.png')
     plt.close()
 
 
@@ -172,22 +180,22 @@ for i_episode in range(num_episodes):
     print(f"\repisode: {i_episode}/{num_episodes}, steps_done: {steps_done}, exp: {EPS_END + (EPS_START - EPS_END) * math.exp(-1. * steps_done / EPS_DECAY)}", end="\r")
     # Initialize the environment and state
     env.new_game(nb_plyers=NB_PLAYERS)
-    last_screen, last_bag = get_screen()
+    #last_screen, last_bag = get_screen()
     current_screen, current_bag = get_screen()
-    state = current_screen - last_screen , current_bag - last_bag
+    state = current_screen, current_bag 
     rewards = [0 for _ in range(NB_PLAYERS)]
     for t in count():
         # Select and perform an action
         action = select_action(state, t%NB_PLAYERS)
         _, reward, done, _ = env.update(t%NB_PLAYERS, action.item())
-        rewards[t%NB_PLAYERS] = reward
+        rewards[t%NB_PLAYERS] += reward
         reward = torch.tensor([reward], device=device)
 
         # Observe new state
         last_screen, last_bag = current_screen, current_bag 
         current_screen, current_bag = get_screen()
         if not done:
-            next_state = current_screen - last_screen, current_bag - last_bag
+            next_state = current_screen, current_bag 
         else:
             next_state = None
 
@@ -196,11 +204,10 @@ for i_episode in range(num_episodes):
 
         # Move to the next state
         state = next_state
-
         # Perform one step of the optimization (on the target network)
-        optimize_model()
         if done:
-            episode_durations.append(sum(reward)/NB_PLAYERS)
+            optimize_model()
+            episode_durations.append(sum(rewards)/NB_PLAYERS)
             plot_durations()
             break
     # Update the target network, copying all weights and biases in DQN

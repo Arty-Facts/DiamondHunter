@@ -119,9 +119,11 @@ class GameSim():
     def update(self, id, action):
         _from = self.id_to_pos[id]
         _to = GameSim.actions[action](*_from)
-        home, carry = -1, -1
+        home, carry = -0.1, -0.1
         if self.valid(id, *_to):
             home, carry = self.move(id, _from, _to)
+        elif self.unaccepteble(id, *_to):
+            home, carry = -1.0, -1.0
 
         if self.save_image:
             plt.imshow(self.get_image())
@@ -140,7 +142,7 @@ class GameSim():
         curr_bag = self.bag[_from] + self.diamonds[_to]
         if curr_bag <= self.max_cap:
             self.bag[_to] = curr_bag
-            carry += curr_bag
+            carry += self.diamonds[_to]*0.1
             self.diamonds[_to] = 0
         else:
             self.bag[_to] = self.bag[_from]
@@ -189,6 +191,19 @@ class GameSim():
                 return False
 
         return True
+    def unaccepteble(self, id, x, y):
+        if x < 0 or x >= self.shape[0]:
+            return True
+
+        if y < 0 or y >= self.shape[1]:
+            return True
+
+        # for _id, (_x, _y) in self.id_to_base.items():
+        #     if _id == id:
+        #         continue
+        #     if x == _x and y == _y:
+        #         return True
+        return False
         
     def get_data(self, id):
         player = {

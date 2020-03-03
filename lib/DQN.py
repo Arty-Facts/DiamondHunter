@@ -8,10 +8,8 @@ class DQN(nn.Module):
         super(DQN, self).__init__()
         self.encoder = nn.Sequential(
                             nn.Conv2d(in_chanals, 64, kernel_size=3, stride=2, bias=True), #7, 5
-                            nn.BatchNorm2d(64),
                             nn.ReLU(inplace=True),
                             nn.Conv2d(64, 128, kernel_size=3, stride=2, bias=True),#3, 2
-                            nn.BatchNorm2d(128),
                             nn.ReLU(inplace=True),
                             nn.Conv2d(128, 256, kernel_size=2, stride=2, bias=True),#1, 1
                             nn.ReLU(inplace=True),
